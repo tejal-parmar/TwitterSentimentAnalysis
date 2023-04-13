@@ -3,8 +3,11 @@ pandas==1.5.1
 numpy-financial==1.0.0
 streamlit==1.21.0
 
+
 better-profanity==0.7.0
 wordcloud==1.8.2.2
 cleantext==1.1.4
+
+click==7.0
 spacy==3.0.6
 https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.0.0/en_core_web_sm-3.0.0.tar.gz#egg=en_core_web_sm

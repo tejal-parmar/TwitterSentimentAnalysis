@@ -12,7 +12,7 @@ tensorflow
 transformers
 huggingface_hub
 
-streamlit
+streamlit==1.21.0
 plotly
 
 protobuf==3.20.3

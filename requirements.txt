@@ -10,3 +10,4 @@ wordcloud==1.8.2.2
 cleantext==1.1.4
 
 streamlit==1.21.0
+click=7.1.1

@@ -13,6 +13,12 @@
 
 
 import snscrape.modules.twitter as sntwitter
+import getpass
+import selenium
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from time import sleep
 
 
 # #### <font color='blue'>Data Structures</font>
@@ -65,7 +71,7 @@ import plotly.graph_objects as go
 
 # #### <font color='blue'>User Interface</font>
 
-# In[26]:
+# In[6]:
 
 
 import streamlit as st
@@ -77,21 +83,45 @@ from datetime import datetime
 
 # ### Building Dataset
 
-# In[7]:
+# In[8]:
 
 
-def scrape_tweets(search_item):
+def scrape_tweets(user_name, user_password, search_item):
+    PATH = "C:/Users/19054/Documents/Driver/chromedriver.exe"
+    driver = webdriver.Chrome(PATH)
+    driver.get("https://twitter.com/i/flow/login")
+    sleep(3)
 
-    tweets = []
+    user_id = driver.find_element(By.XPATH, "//input[@type='text']")
+    user_id.send_keys(user_name)
+    user_id.send_keys(Keys.ENTER)
+    sleep(3)
 
-    for i, tweet in enumerate(sntwitter.TwitterSearchScraper(search_item).get_items()):
-        if i > 200:
+    password = driver.find_element(By.XPATH, "//input[@type='password']")
+    password.send_keys(user_password)
+    password.send_keys(Keys.ENTER)
+    sleep(3)
+    
+    search_box = driver.find_element(By.XPATH, "//input[@data-testid='SearchBox_Search_Input']")
+    search_box.clear()   
+    search_box.send_keys(search_item)
+    search_box.send_keys(Keys.ENTER)
+    
+    all_tweets = set()
+
+    tweets = driver.find_elements(By.XPATH, "//div[@data-testid='tweetText']")
+    while True:
+        for tweet in tweets:
+            all_tweets.add(tweet.text)
+
+        driver.execute_script('window.scrollTo(0, document.body.scrollHeight);')
+        sleep(3)
+
+        tweets = driver.find_elements(By.XPATH, "//div[@data-testid='tweetText']")
+        if len(all_tweets) > 200:
             break
-        tweets.append([tweet.date, tweet.id, tweet.content, tweet.user.username])
-
-    tweets_df = pd.DataFrame(tweets, columns=['Datetime', 'Tweet Id', 'Text', 'Username'])
-    df = tweets_df[['Text']]
-    df.columns = ['tweets']
+    df = pd.DataFrame(all_tweets, columns = ['tweets'])
+    driver.close()
     return df
 
 
@@ -99,7 +129,7 @@ def scrape_tweets(search_item):
 
 # #### Parsing using Spacy <br>Flitering punctuation, white space, numbers, URL, @ mention using Spacy <br>Removing special character and search item <br>Single syllable token removal <br>Spell correction: dealing with repeated characters such as "soooo gooood", if the same character is repeated more than two times, it shortens the repeatition to two. Hence "soooo gooood" will be transformed to "soo good". It will help to reduce feature space.
 
-# In[8]:
+# In[9]:
 
 
 def spacy_cleaner(text, search_item):
@@ -121,7 +151,7 @@ def spacy_cleaner(text, search_item):
 
 # #### Removing empty rows
 
-# In[9]:
+# In[10]:
 
 
 def data_cleaning(data, search_item):
@@ -136,7 +166,7 @@ def data_cleaning(data, search_item):
 
 # #### A word cloud represents word usage in a document by resizing individual words proportionally to its frequency, and then presenting them in a random arrangement.
 
-# In[10]:
+# In[11]:
 
 
 def create_cloud(cleaned_data, search_item):
@@ -160,7 +190,7 @@ def create_cloud(cleaned_data, search_item):
 
 # #### The following code uses twitter_roberta model to classify the sentiment of each tweet in the dataset, the resulted dataframe will have an additional column containing the predicted label for that particular tweet.
 
-# In[11]:
+# In[12]:
 
 
 def modeling(cleaned_data, search_item):
@@ -181,7 +211,7 @@ def modeling(cleaned_data, search_item):
 
 # ### Plotting the Results
 
-# In[12]:
+# In[13]:
 
 
 def plt_segmentation(col, results):
@@ -198,7 +228,7 @@ def plt_segmentation(col, results):
     return plt
 
 
-# In[13]:
+# In[14]:
 
 
 def plotPie(labels, values):
@@ -217,7 +247,7 @@ cacheData = {}
 
 # ### User Interface and Dashboard using Streamlit
 
-# In[14]:
+# In[ ]:
 
 
 def time_convert(sec):
@@ -236,15 +266,20 @@ def time_convert(sec):
     return time_lapsed
 
 
-# In[17]:
+# In[ ]:
 
 
 def run():
     st.title("Twitter Sentiment Analysis")
     st.text("Analyze sentiments of a popular hashtag or topic on Twitter")
-    
-    search_item = st.text_input('Search Topic', placeholder = 'Input keyword HERE')
+    col1, col2 = st.columns(2)
+    with col1:
+        username = st.text_input("Twitter Username", type = "password")
+    with col2:
+        password = st.text_input("Password", type = "password")
 
+    search_item = st.text_input('Search Topic', placeholder = 'Input keyword HERE')
+    
     placeholder = st.empty()
     btn = placeholder.button('Analyze', disabled = False, key = "1")
 
@@ -252,14 +287,12 @@ def run():
         if search_item:
             start_time = time.time()
         
-            st.success('{}'.format(datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
-            
             placeholder.button('Analyze', disabled = True, key = "2")
             btn = st.empty()
             
             print('Analyzing..')
 
-            data = scrape_tweets(search_item)
+            data = scrape_tweets(username, password, search_item)
             print('data scraped..')
 
             cleaned_data = data_cleaning(data, search_item)
@@ -302,7 +335,6 @@ def run():
 
             end_time = time.time()
             time_lapsed = time_convert(end_time - start_time)
-            st.success('{}'.format(datetime.now().strftime("%d/%m/%Y %H:%M:%S")))
             
             st.success('Analysis finished in {}'.format(time_lapsed))
             print('Analysis is finished in {}'.format(time_lapsed))

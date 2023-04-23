@@ -1,3 +1,4 @@
+selenium
 snscrape
 pandas
 numpy-financial
